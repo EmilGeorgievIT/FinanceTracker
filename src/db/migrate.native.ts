@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS expense_tracker (
   FOREIGN KEY (category_id) REFERENCES category(id)
 );
 
-CREATE TABLE IF NOT EXISTS transaction (
+CREATE TABLE IF NOT EXISTS transactions (
   id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   tracker_id integer NOT NULL,
   type text NOT NULL,

@@ -124,7 +124,7 @@ export const transactionTypeEnum = [
 ] as const;
 export type TransactionType = (typeof transactionTypeEnum)[number];
 
-export const transaction = sqliteTable('transaction', {
+export const transaction = sqliteTable('transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   trackerId: integer('tracker_id').notNull().references(() => tracker.id, { onDelete: 'cascade' }),
   type: text('type').notNull().$type<TransactionType>(),
