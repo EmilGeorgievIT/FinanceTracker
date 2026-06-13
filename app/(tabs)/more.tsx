@@ -1,10 +1,9 @@
 import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Paths } from 'expo-file-system';
-import { useTheme } from '../../src/stores/useUiStore';
+import { useTheme, useUiStore, useT, type ColorSchemeSetting, type Language } from '../../src/stores/useUiStore';
 import { exportAllData } from '../../src/services/exportService';
 import { validateImportData, importAllData } from '../../src/services/importService';
 
@@ -15,8 +14,24 @@ interface MenuItem {
   onPress: () => void;
 }
 
+const THEME_OPTIONS: { key: ColorSchemeSetting; label: string }[] = [
+  { key: 'system', label: 'System' },
+  { key: 'light', label: 'Light' },
+  { key: 'dark', label: 'Dark' },
+];
+
+const LANG_OPTIONS: { key: Language; label: string }[] = [
+  { key: 'en', label: 'English' },
+  { key: 'bg', label: 'Български' },
+];
+
 export default function MoreScreen() {
   const theme = useTheme();
+  const t = useT();
+  const colorSchemeSetting = useUiStore((s) => s.colorSchemeSetting);
+  const setColorSchemeSetting = useUiStore((s) => s.setColorSchemeSetting);
+  const language = useUiStore((s) => s.language);
+  const setLanguage = useUiStore((s) => s.setLanguage);
 
   const handleExport = async () => {
     try {
@@ -53,38 +68,60 @@ export default function MoreScreen() {
   const menuItems: MenuItem[] = [
     {
       icon: 'download-outline',
-      label: 'Export Data',
-      subtitle: 'Save all tracker data to JSON',
+      label: t('exportData'),
+      subtitle: t('exportSubtitle'),
       onPress: handleExport,
     },
     {
-      icon: 'upload-outline',
-      label: 'Import Data',
-      subtitle: 'Load previously exported file',
+      icon: 'cloud-upload-outline',
+      label: t('importData'),
+      subtitle: t('importSubtitle'),
       onPress: handleImport,
     },
     {
-      icon: 'options-outline',
-      label: 'Settings',
-      subtitle: 'Appearance and preferences',
-      onPress: () => router.push('/more/settings'),
-    },
-    {
-      icon: 'list-outline',
-      label: 'Manage Categories',
-      subtitle: 'Edit expense categories',
-      onPress: () => router.push('/categories'),
-    },
-    {
       icon: 'information-circle-outline',
-      label: 'About',
+      label: t('about'),
       subtitle: 'Finance Tracker v1.0.0',
-      onPress: () => Alert.alert('Finance Tracker', 'v1.0.0\nTrack your assets, debts, income and expenses.'),
+      onPress: () => Alert.alert('Finance Tracker', 'v1.0.0'),
     },
   ];
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* Appearance */}
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('appearance')}</Text>
+      <View style={[styles.segmentRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        {THEME_OPTIONS.map((opt) => (
+          <TouchableOpacity
+            key={opt.key}
+            style={[styles.segmentBtn, colorSchemeSetting === opt.key && { backgroundColor: theme.primary }]}
+            onPress={() => setColorSchemeSetting(opt.key)}
+          >
+            <Text style={[styles.segmentText, { color: colorSchemeSetting === opt.key ? '#fff' : theme.textSecondary }]}>
+              {opt.key === 'system' ? t('system') : opt.key === 'light' ? t('light') : t('dark')}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Language */}
+      <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 16 }]}>{t('language')}</Text>
+      <View style={[styles.segmentRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        {LANG_OPTIONS.map((opt) => (
+          <TouchableOpacity
+            key={opt.key}
+            style={[styles.segmentBtn, language === opt.key && { backgroundColor: theme.primary }]}
+            onPress={() => setLanguage(opt.key)}
+          >
+            <Text style={[styles.segmentText, { color: language === opt.key ? '#fff' : theme.textSecondary }]}>
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Menu items */}
+      <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 24 }]}>Data</Text>
       {menuItems.map((item) => (
         <TouchableOpacity
           key={item.label}
@@ -110,6 +147,10 @@ export default function MoreScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 10 },
+  segmentRow: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, overflow: 'hidden', marginBottom: 8 },
+  segmentBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+  segmentText: { fontSize: 14, fontWeight: '600' },
   row: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, marginBottom: 8, borderWidth: 1, gap: 14 },
   iconBox: { width: 42, height: 42, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   textBox: { flex: 1 },
