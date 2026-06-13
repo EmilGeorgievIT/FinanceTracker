@@ -3,12 +3,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { initializeDatabase } from '../src/db/seed';
-import { useTheme, useIsDark } from '../src/stores/useUiStore';
+import { useTheme, useIsDark, useT } from '../src/stores/useUiStore';
 
 function DbInit({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const theme = useTheme();
+  const t = useT();
 
   useEffect(() => {
     initializeDatabase().then(() => setReady(true)).catch((e) => {
@@ -22,7 +23,7 @@ function DbInit({ children }: { children: React.ReactNode }) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
         <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={{ marginTop: 12, color: theme.textSecondary, fontSize: 16 }}>Setting up…</Text>
+        <Text style={{ marginTop: 12, color: theme.textSecondary, fontSize: 16 }}>{t('settingUp')}</Text>
       </View>
     );
   }
@@ -30,7 +31,7 @@ function DbInit({ children }: { children: React.ReactNode }) {
   if (error) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background, padding: 24 }}>
-        <Text style={{ fontSize: 18, fontWeight: '700', color: theme.danger, marginBottom: 8 }}>Startup Error</Text>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: theme.danger, marginBottom: 8 }}>{t('startupError')}</Text>
         <Text style={{ color: theme.textSecondary, textAlign: 'center' }}>{error}</Text>
       </View>
     );

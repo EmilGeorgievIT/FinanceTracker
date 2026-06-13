@@ -11,7 +11,7 @@ import { usePriceRefresh } from '../../../src/hooks/usePriceRefresh';
 import { Button } from '../../../src/components/ui/Button';
 import { Input } from '../../../src/components/ui/Input';
 import { Card } from '../../../src/components/ui/Card';
-import { useTheme } from '../../../src/stores/useUiStore';
+import { useTheme, useT } from '../../../src/stores/useUiStore';
 import { formatEur } from '../../../src/utils/currency';
 import { formatDate } from '../../../src/utils/date';
 import type { TransactionRow } from '../../../src/repositories/transactionRepository';
@@ -30,6 +30,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 // Circular progress ring for savings goals
 function ProgressRing({ current, target, color, size = 180 }: { current: number; target: number; color: string; size?: number }) {
+  const t = useT();
   const pct = Math.min(100, Math.round((current / target) * 100));
   const strokeW = 10;
   const radius = (size - strokeW) / 2;
@@ -44,7 +45,7 @@ function ProgressRing({ current, target, color, size = 180 }: { current: number;
         {/* Progress overlay — simplified as left half */}
         <View style={{ position: 'absolute', top: 0, left: 0, width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ fontSize: 28, fontWeight: '800', color }}>{formatEur(current)}</Text>
-          <Text style={{ fontSize: 12, color: '#888', marginTop: 2 }}>of {formatEur(target)}</Text>
+          <Text style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{t('of')} {formatEur(target)}</Text>
           <Text style={{ fontSize: 20, fontWeight: '700', color, marginTop: 4 }}>{pct}%</Text>
         </View>
         {/* Simple progress representation */}
@@ -58,6 +59,7 @@ function ProgressRing({ current, target, color, size = 180 }: { current: number;
 
 export default function TrackerDetailScreen() {
   const theme = useTheme();
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const trackerId = parseInt(id, 10);
   const { tracker, savingsGoal, incomeTracker, expenseTracker, mortgage, loan, variableHolding, loading, refresh } = useTrackerWithTransactions(trackerId);
@@ -77,10 +79,10 @@ export default function TrackerDetailScreen() {
   const icon = tracker ? (TYPE_ICONS[tracker.type] ?? 'wallet-outline') : 'wallet-outline';
 
   const getTxTypes = (): { key: TransactionType; label: string }[] => {
-    if (savingsGoal) return [{ key: 'deposit', label: 'Deposit' }];
-    if (mortgage || loan) return [{ key: 'payment', label: 'Payment' }];
-    if (variableHolding) return [{ key: 'buy', label: 'Buy' }, { key: 'sell', label: 'Sell' }];
-    return [{ key: 'deposit', label: 'Deposit' }];
+    if (savingsGoal) return [{ key: 'deposit', label: t('deposit') }];
+    if (mortgage || loan) return [{ key: 'payment', label: t('payment') }];
+    if (variableHolding) return [{ key: 'buy', label: t('buy') }, { key: 'sell', label: t('sell') }];
+    return [{ key: 'deposit', label: t('deposit') }];
   };
 
   const handleAddTx = async () => {
@@ -92,8 +94,8 @@ export default function TrackerDetailScreen() {
     refresh(); refreshTx();
   };
 
-  if (loading) return <View style={[s.centered, { backgroundColor: theme.background }]}><Text style={{ color: theme.textTertiary }}>Loading…</Text></View>;
-  if (!tracker) return <View style={[s.centered, { backgroundColor: theme.background }]}><Text style={{ color: theme.textTertiary }}>Tracker not found</Text></View>;
+  if (loading) return <View style={[s.centered, { backgroundColor: theme.background }]}><Text style={{ color: theme.textTertiary }}>{t('loading')}</Text></View>;
+  if (!tracker) return <View style={[s.centered, { backgroundColor: theme.background }]}><Text style={{ color: theme.textTertiary }}>{t('notFound')}</Text></View>;
 
   const txTypes = getTxTypes();
   const primaryActionLabel = savingsGoal ? 'Deposit' : mortgage || loan ? 'Payment' : variableHolding ? 'Buy' : 'Add';
@@ -113,7 +115,7 @@ export default function TrackerDetailScreen() {
         <View style={[s.tabRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           {(['overview', 'transactions'] as const).map((t) => (
             <TouchableOpacity key={t} style={[s.tab, tab === t && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]} onPress={() => setTab(t)}>
-              <Text style={[s.tabText, { color: tab === t ? theme.primary : theme.textSecondary }]}>{t === 'overview' ? 'Overview' : 'Transactions'}</Text>
+              <Text style={[s.tabText, { color: tab === t ? theme.primary : theme.textSecondary }]}>{t === 'overview' ? t('overview2') : t('transactions')}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -124,11 +126,11 @@ export default function TrackerDetailScreen() {
             {savingsGoal && (
               <Card style={s.detailCard}>
                 <ProgressRing current={savingsGoal.currentBalance} target={savingsGoal.targetAmount} color={color} />
-                <Row theme={theme} label="Target Amount" value={formatEur(savingsGoal.targetAmount)} />
-                <Row theme={theme} label="Current Balance" value={formatEur(savingsGoal.currentBalance)} />
-                <Row theme={theme} label="Monthly Contribution" value={formatEur(savingsGoal.monthlyContribution)} />
-                <Row theme={theme} label="Remaining" value={formatEur(savingsGoal.targetAmount - savingsGoal.currentBalance)} />
-                <Row theme={theme} label="Priority" value={String(savingsGoal.priority)} />
+                <Row theme={theme} label={t('targetAmount')} value={formatEur(savingsGoal.targetAmount)} />
+                <Row theme={theme} label={t('currentBalance')} value={formatEur(savingsGoal.currentBalance)} />
+                <Row theme={theme} label={t('monthlyContribution')} value={formatEur(savingsGoal.monthlyContribution)} />
+                <Row theme={theme} label={t('remaining')} value={formatEur(savingsGoal.targetAmount - savingsGoal.currentBalance)} />
+                <Row theme={theme} label={t('priority')} value={String(savingsGoal.priority)} />
               </Card>
             )}
 
@@ -139,8 +141,8 @@ export default function TrackerDetailScreen() {
                   <Text style={[s.bigAmount, { color: theme.success }]}>{formatEur(incomeTracker.netMonthlyAmount)}</Text>
                   <Text style={[s.subtext, { color: theme.textSecondary }]}>Net monthly income · Day {incomeTracker.paymentDay}</Text>
                 </View>
-                <Row theme={theme} label="Annual" value={formatEur(incomeTracker.netMonthlyAmount * 12)} />
-                <Row theme={theme} label="Payment Day" value={String(incomeTracker.paymentDay)} />
+                <Row theme={theme} label={t('annual')} value={formatEur(incomeTracker.netMonthlyAmount * 12)} />
+                <Row theme={theme} label={t('paymentDay')} value={String(incomeTracker.paymentDay)} />
               </Card>
             )}
 
@@ -151,7 +153,7 @@ export default function TrackerDetailScreen() {
                   <Text style={[s.bigAmount, { color: theme.danger }]}>{formatEur(expenseTracker.amount)}</Text>
                   <Text style={[s.subtext, { color: theme.textSecondary }]}>{expenseTracker.frequency === 'monthly' ? 'Monthly' : 'One-off'} expense</Text>
                 </View>
-                <Row theme={theme} label="Frequency" value={expenseTracker.frequency === 'monthly' ? 'Monthly' : 'One-off'} />
+                <Row theme={theme} label={t('frequency')} value={expenseTracker.frequency === 'monthly' ? t('monthly') : t('oneOff')} />
                 <Row theme={theme} label="Date/Day" value={String(expenseTracker.dateValue)} />
               </Card>
             )}
@@ -164,11 +166,11 @@ export default function TrackerDetailScreen() {
                   <Text style={[s.subtext, { color: theme.textSecondary }]}>Remaining balance</Text>
                 </View>
                 <ProgressBar current={mortgage.principal - mortgage.balance} target={mortgage.principal} color={color} />
-                <Row theme={theme} label="Original Principal" value={formatEur(mortgage.principal)} />
-                <Row theme={theme} label="Interest Rate" value={`${mortgage.interestRate}%`} />
-                <Row theme={theme} label="Monthly Payment" value={formatEur(mortgage.monthlyPayment)} />
-                <Row theme={theme} label="Property Value" value={formatEur(mortgage.propertyValue)} />
-                <Row theme={theme} label="LTV" value={`${Math.round(mortgage.balance / mortgage.propertyValue * 100)}%`} />
+                <Row theme={theme} label={t('originalPrincipal')} value={formatEur(mortgage.principal)} />
+                <Row theme={theme} label={t('interestRate')} value={`${mortgage.interestRate}%`} />
+                <Row theme={theme} label={t('monthlyPayment')} value={formatEur(mortgage.monthlyPayment)} />
+                <Row theme={theme} label={t('propertyValue')} value={formatEur(mortgage.propertyValue)} />
+                <Row theme={theme} label={t('ltv')} value={`${Math.round(mortgage.balance / mortgage.propertyValue * 100)}%`} />
               </Card>
             )}
 
@@ -180,9 +182,9 @@ export default function TrackerDetailScreen() {
                   <Text style={[s.subtext, { color: theme.textSecondary }]}>Remaining balance</Text>
                 </View>
                 <ProgressBar current={loan.principal - loan.balance} target={loan.principal} color={color} />
-                <Row theme={theme} label="Original Principal" value={formatEur(loan.principal)} />
-                <Row theme={theme} label="Interest Rate" value={`${loan.interestRate}%`} />
-                <Row theme={theme} label="Monthly Payment" value={formatEur(loan.monthlyPayment)} />
+                <Row theme={theme} label={t('originalPrincipal')} value={formatEur(loan.principal)} />
+                <Row theme={theme} label={t('interestRate')} value={`${loan.interestRate}%`} />
+                <Row theme={theme} label={t('monthlyPayment')} value={formatEur(loan.monthlyPayment)} />
               </Card>
             )}
 
@@ -195,14 +197,14 @@ export default function TrackerDetailScreen() {
                   </Text>
                   <Text style={[s.subtext, { color: theme.textSecondary }]}>{variableHolding.currentPrice ? 'Current price' : 'Price not fetched'}</Text>
                 </View>
-                <Row theme={theme} label="Units" value={String(variableHolding.units)} />
-                <Row theme={theme} label="Avg Cost" value={formatEur(variableHolding.avgPurchasePrice)} />
+                <Row theme={theme} label={t('units')} value={String(variableHolding.units)} />
+                <Row theme={theme} label={t('avgCost')} value={formatEur(variableHolding.avgPurchasePrice)} />
                 {variableHolding.currentPrice && (<>
-                  <Row theme={theme} label="Total Value" value={formatEur(variableHolding.units * variableHolding.currentPrice)} />
-                  <Row theme={theme} label="P&L" value={formatEur(variableHolding.units * (variableHolding.currentPrice - variableHolding.avgPurchasePrice))} />
-                  <Row theme={theme} label="P&L %" value={`${((variableHolding.currentPrice / variableHolding.avgPurchasePrice - 1) * 100).toFixed(2)}%`} />
+                  <Row theme={theme} label={t('totalValue')} value={formatEur(variableHolding.units * variableHolding.currentPrice)} />
+                  <Row theme={theme} label={t('profitLoss')} value={formatEur(variableHolding.units * (variableHolding.currentPrice - variableHolding.avgPurchasePrice))} />
+                  <Row theme={theme} label={`${t('profitLoss')} %`} value={`${((variableHolding.currentPrice / variableHolding.avgPurchasePrice - 1) * 100).toFixed(2)}%`} />
                 </>)}
-                <Button title={priceRefreshing ? 'Refreshing…' : 'Refresh Price'} variant="secondary" onPress={async () => { await refreshPrices(); refresh(); }} style={{ marginTop: 12 }} />
+                <Button title={priceRefreshing ? t('refreshing') : t('refreshPrice')} variant="secondary" onPress={async () => { await refreshPrices(); refresh(); }} style={{ marginTop: 12 }} />
               </Card>
             )}
           </View>
@@ -211,9 +213,9 @@ export default function TrackerDetailScreen() {
         {tab === 'transactions' && (
           <View style={{ padding: 16 }}>
             {txLoading ? (
-              <Text style={[s.emptyText, { color: theme.textTertiary }]}>Loading…</Text>
+              <Text style={[s.emptyText, { color: theme.textTertiary }]}>{t('loading')}</Text>
             ) : transactions.length === 0 ? (
-              <Text style={[s.emptyText, { color: theme.textTertiary }]}>No transactions yet</Text>
+              <Text style={[s.emptyText, { color: theme.textTertiary }]}>{t('noTransactions')}</Text>
             ) : (
               transactions.map((tx) => <TransactionItem key={tx.id} tx={tx} theme={theme} />)
             )}
@@ -222,10 +224,10 @@ export default function TrackerDetailScreen() {
 
         {/* Delete button */}
         <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
-          <Button title="Delete Tracker" variant="danger" onPress={() => {
-            Alert.alert('Delete Tracker', `Permanently remove "${tracker.name}"?`, [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', style: 'destructive', onPress: async () => { await deleteTracker(tracker.id); router.back(); } },
+          <Button title={t('deleteTracker')} variant="danger" onPress={() => {
+            Alert.alert(t('deleteTracker'), t('deleteConfirm', { name: tracker.name }), [
+              { text: t('cancel'), style: 'cancel' },
+              { text: t('delete'), style: 'destructive', onPress: async () => { await deleteTracker(tracker.id); router.back(); } },
             ]);
           }} />
         </View>
@@ -241,13 +243,13 @@ export default function TrackerDetailScreen() {
         <KeyboardAvoidingView style={[s.modalContainer, { backgroundColor: theme.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={[s.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Text style={[s.cancelText, { color: theme.primary }]}>Cancel</Text>
+              <Text style={[s.cancelText, { color: theme.primary }]}>{t('cancel')}</Text>
             </TouchableOpacity>
-            <Text style={[s.modalTitle, { color: theme.text }]}>Add Transaction</Text>
+            <Text style={[s.modalTitle, { color: theme.text }]}>{t('addTransaction')}</Text>
             <View style={{ width: 60 }} />
           </View>
           <ScrollView style={s.modalBody}>
-            <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>Type</Text>
+            <Text style={[s.fieldLabel, { color: theme.textSecondary }]}>{t('type')}</Text>
             <View style={s.typeRow}>
               {txTypes.map((t) => (
                 <TouchableOpacity key={t.key} style={[s.typeBtn, { borderColor: theme.border, backgroundColor: theme.inputBg }, txType === t.key && { borderColor: theme.primary, backgroundColor: theme.primary + '18' }]} onPress={() => setTxType(t.key)}>
@@ -255,13 +257,13 @@ export default function TrackerDetailScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <Input label="Amount (EUR)" keyboardType="decimal-pad" value={txAmount} onChangeText={setTxAmount} autoFocus />
+            <Input label={`${t('amount')} (EUR)`} keyboardType="decimal-pad" value={txAmount} onChangeText={setTxAmount} autoFocus />
             {(txType === 'buy' || txType === 'sell') && (<>
-              <Input label="Units" keyboardType="decimal-pad" value={txUnits} onChangeText={setTxUnits} />
-              <Input label="Price per Unit (EUR)" keyboardType="decimal-pad" value={txPrice} onChangeText={setTxPrice} />
+              <Input label={t('units')} keyboardType="decimal-pad" value={txUnits} onChangeText={setTxUnits} />
+              <Input label={`${t('currentPrice')} (EUR)`} keyboardType="decimal-pad" value={txPrice} onChangeText={setTxPrice} />
             </>)}
-            <Input label="Note (optional)" value={txNote} onChangeText={setTxNote} />
-            <Button title={`Add ${txType}`} onPress={handleAddTx} style={{ marginTop: 12 }} />
+            <Input label={t('note')} value={txNote} onChangeText={setTxNote} />
+            <Button title={`${t('add')} ${t(txType as any)}`} onPress={handleAddTx} style={{ marginTop: 12 }} />
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>

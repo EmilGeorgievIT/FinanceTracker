@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { useTheme } from '../../src/stores/useUiStore';
+import { useTheme, useT } from '../../src/stores/useUiStore';
 import { getAllTransactions, type TransactionRow } from '../../src/repositories/transactionRepository';
 import { Card } from '../../src/components/ui/Card';
 import { formatEur } from '../../src/utils/currency';
@@ -17,6 +17,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function TransactionsScreen() {
   const theme = useTheme();
+  const t = useT();
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,9 +53,9 @@ export default function TransactionsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {loading ? (
-        <Text style={[styles.empty, { color: theme.textTertiary }]}>Loading…</Text>
+        <Text style={[styles.empty, { color: theme.textTertiary }]}>{t('loading')}</Text>
       ) : transactions.length === 0 ? (
-        <Text style={[styles.empty, { color: theme.textTertiary }]}>No transactions yet</Text>
+        <Text style={[styles.empty, { color: theme.textTertiary }]}>{t('noTransactions')}</Text>
       ) : (
         <FlatList
           data={transactions}

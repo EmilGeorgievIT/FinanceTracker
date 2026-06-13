@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
 import { useCategories, useCategoryActions } from '../../src/hooks/useCategories';
-import { useTheme } from '../../src/stores/useUiStore';
+import { useTheme, useT } from '../../src/stores/useUiStore';
 import type { CategoryRow } from '../../src/repositories/categoryRepository';
 
 export default function CategoriesScreen() {
   const theme = useTheme();
+  const t = useT();
   const { categories, loading, refresh } = useCategories();
   const { add, rename, remove } = useCategoryActions();
   const [newName, setNewName] = useState('');
@@ -30,9 +31,9 @@ export default function CategoriesScreen() {
   };
 
   const handleDelete = (id: number, name: string) => {
-    Alert.alert('Delete Category', `Delete "${name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => { await remove(id); refresh(); } },
+    Alert.alert(t('deleteCategory'), t('deleteCategoryConfirm', { name }), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('delete'), style: 'destructive', onPress: async () => { await remove(id); refresh(); } },
     ]);
   };
 
@@ -44,18 +45,18 @@ export default function CategoriesScreen() {
           placeholderTextColor={theme.inputPlaceholder}
           value={newName}
           onChangeText={setNewName}
-          placeholder="New category"
+          placeholder={t('newCategory')}
           onSubmitEditing={handleAdd}
         />
         <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.primary }]} onPress={handleAdd}>
-          <Text style={styles.addBtnText}>Add</Text>
+          <Text style={styles.addBtnText}>{t('add')}</Text>
         </TouchableOpacity>
       </View>
 
       {loading ? (
-        <Text style={[styles.loading, { color: theme.textTertiary }]}>Loading…</Text>
+        <Text style={[styles.loading, { color: theme.textTertiary }]}>{t('loading')}</Text>
       ) : categories.length === 0 ? (
-        <Text style={[styles.empty, { color: theme.textTertiary }]}>No categories yet</Text>
+        <Text style={[styles.empty, { color: theme.textTertiary }]}>{t('noCategories')}</Text>
       ) : (
         categories.map((cat) => (
           <View key={cat.id} style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -73,10 +74,10 @@ export default function CategoriesScreen() {
             )}
             <View style={styles.actions}>
               <TouchableOpacity onPress={() => { setEditingId(cat.id); setEditName(cat.name); }}>
-                <Text style={[styles.editText, { color: theme.primary }]}>Edit</Text>
+                <Text style={[styles.editText, { color: theme.primary }]}>{t('edit')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleDelete(cat.id, cat.name)}>
-                <Text style={[styles.deleteText, { color: theme.danger }]}>Del</Text>
+                <Text style={[styles.deleteText, { color: theme.danger }]}>{t('del')}</Text>
               </TouchableOpacity>
             </View>
           </View>
