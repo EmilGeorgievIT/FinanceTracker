@@ -10,12 +10,14 @@ import { usePriceRefresh } from '../../../src/hooks/usePriceRefresh';
 import { Button } from '../../../src/components/ui/Button';
 import { Input } from '../../../src/components/ui/Input';
 import { Card } from '../../../src/components/ui/Card';
+import { useTheme } from '../../../src/stores/useUiStore';
 import { formatEur } from '../../../src/utils/currency';
 import { formatDate } from '../../../src/utils/date';
 import type { TransactionRow } from '../../../src/repositories/transactionRepository';
 import type { TransactionType } from '../../../src/types/enums';
 
 export default function TrackerDetailScreen() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const trackerId = parseInt(id, 10);
   const { tracker, savingsGoal, incomeTracker, expenseTracker, mortgage, loan, variableHolding, loading, refresh } =
@@ -64,10 +66,10 @@ export default function TrackerDetailScreen() {
   };
 
   if (loading) {
-    return <View style={styles.centered}><Text style={styles.loadingText}>Loading…</Text></View>;
+    return <View style={[styles.centered, { backgroundColor: theme.background }]}><Text style={[styles.loadingText, { color: theme.textTertiary }]}>Loading…</Text></View>;
   }
   if (!tracker) {
-    return <View style={styles.centered}><Text style={styles.loadingText}>Tracker not found</Text></View>;
+    return <View style={[styles.centered, { backgroundColor: theme.background }]}><Text style={[styles.loadingText, { color: theme.textTertiary }]}>Tracker not found</Text></View>;
   }
 
   const txTypes = getTransactionTypes();
@@ -89,12 +91,12 @@ export default function TrackerDetailScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Savings Goal */}
         {savingsGoal && (
           <Card style={styles.detailCard}>
-            <Text style={styles.cardTitle}>{tracker.name}</Text>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>{tracker.name}</Text>
             <ProgressBar current={savingsGoal.currentBalance} target={savingsGoal.targetAmount} />
             <Row label="Current" value={formatEur(savingsGoal.currentBalance)} />
             <Row label="Target" value={formatEur(savingsGoal.targetAmount)} />
@@ -196,14 +198,14 @@ export default function TrackerDetailScreen() {
 
         {/* Transactions */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Transactions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Transactions</Text>
           <Button title="+ Add" variant="primary" onPress={() => { setTxType(txTypes[0]?.key ?? 'deposit'); setModalVisible(true); }} style={{ paddingVertical: 8, paddingHorizontal: 14 }} />
         </View>
 
         {txLoading ? (
-          <Text style={styles.emptyText}>Loading…</Text>
+          <Text style={[styles.emptyText, { color: theme.textTertiary }]}>Loading…</Text>
         ) : transactions.length === 0 ? (
-          <Text style={styles.emptyText}>No transactions yet</Text>
+          <Text style={[styles.emptyText, { color: theme.textTertiary }]}>No transactions yet</Text>
         ) : (
           transactions.map((tx) => (
             <View key={tx.id} style={{ paddingHorizontal: 16, marginBottom: 6 }}>

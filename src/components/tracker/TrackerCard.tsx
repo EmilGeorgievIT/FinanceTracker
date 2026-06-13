@@ -1,6 +1,7 @@
 import { TouchableOpacity, Text, View, StyleSheet, Alert } from 'react-native';
 import type { TrackerRow } from '../../repositories/trackerRepository';
 import { Card } from '../ui/Card';
+import { useTheme } from '../../stores/useUiStore';
 import { formatEur } from '../../utils/currency';
 
 interface Props {
@@ -29,6 +30,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export function TrackerCard({ tracker, subtitle, onPress, onDelete }: Props) {
+  const theme = useTheme();
   const color = TYPE_COLORS[tracker.type] ?? '#999';
 
   const handleLongPress = () => {
@@ -47,8 +49,8 @@ export function TrackerCard({ tracker, subtitle, onPress, onDelete }: Props) {
     <TouchableOpacity onPress={onPress} onLongPress={handleLongPress} activeOpacity={0.7}>
       <Card style={styles.card}>
         <View style={styles.left}>
-          <Text style={styles.name}>{tracker.name}</Text>
-          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+          <Text style={[styles.name, { color: theme.text }]}>{tracker.name}</Text>
+          {subtitle && <Text style={[styles.subtitle, { color: theme.textTertiary }]}>{subtitle}</Text>}
         </View>
         <View style={styles.right}>
           <View style={[styles.badge, { backgroundColor: color + '18' }]}>
@@ -65,8 +67,8 @@ export function TrackerCard({ tracker, subtitle, onPress, onDelete }: Props) {
 const styles = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   left: { flex: 1 },
-  name: { fontSize: 16, fontWeight: '600', color: '#222' },
-  subtitle: { fontSize: 13, color: '#888', marginTop: 2 },
+  name: { fontSize: 16, fontWeight: '600' },
+  subtitle: { fontSize: 13, marginTop: 2 },
   right: {},
   badge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   badgeText: { fontSize: 11, fontWeight: '700' },

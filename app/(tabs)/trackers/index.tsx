@@ -18,6 +18,7 @@ import { useCategories } from '../../../src/hooks/useCategories';
 import { TrackerCard } from '../../../src/components/tracker/TrackerCard';
 import { Button } from '../../../src/components/ui/Button';
 import { Input } from '../../../src/components/ui/Input';
+import { useTheme } from '../../../src/stores/useUiStore';
 import type { TrackerType } from '../../../src/types/enums';
 
 const TRACKER_TYPE_OPTIONS: { key: TrackerType; label: string }[] = [
@@ -30,6 +31,7 @@ const TRACKER_TYPE_OPTIONS: { key: TrackerType; label: string }[] = [
 ];
 
 export default function TrackersScreen() {
+  const theme = useTheme();
   const { trackers, loading, refresh } = useTrackers();
   const createSavingsGoal = useCreateSavingsGoal();
   const createIncome = useCreateIncomeTracker();
@@ -95,7 +97,7 @@ export default function TrackersScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
         data={trackers}
         keyExtractor={(item) => String(item.id)}
@@ -110,31 +112,39 @@ export default function TrackersScreen() {
           />
         )}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={!loading ? <Text style={styles.empty}>No trackers yet. Tap + to add one.</Text> : null}
+        ListEmptyComponent={!loading ? <Text style={[styles.empty, { color: theme.textTertiary }]}>No trackers yet. Tap + to add one.</Text> : null}
       />
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)} activeOpacity={0.8}>
+      <TouchableOpacity style={[styles.fab, { backgroundColor: theme.fab }]} onPress={() => setModalVisible(true)} activeOpacity={0.8}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
-        <KeyboardAvoidingView style={styles.modalContainer} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={styles.modalHeader}>
+        <KeyboardAvoidingView style={[styles.modalContainer, { backgroundColor: theme.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
             <TouchableOpacity onPress={() => { setModalVisible(false); resetForm(); }}>
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={[styles.cancelText, { color: theme.primary }]}>Cancel</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>New Tracker</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>New Tracker</Text>
             <View style={{ width: 60 }} />
           </View>
           <ScrollView style={styles.modalBody} contentContainerStyle={{ paddingBottom: 40 }}>
-            <Text style={styles.fieldLabel}>Type</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Type</Text>
             <View style={styles.typeRow}>
               {TRACKER_TYPE_OPTIONS.map((opt) => (
                 <TouchableOpacity
                   key={opt.key}
-                  style={[styles.typeBtn, selectedType === opt.key && styles.typeBtnSelected]}
+                  style={[
+                    styles.typeBtn,
+                    { borderColor: theme.border, backgroundColor: theme.inputBg },
+                    selectedType === opt.key && { borderColor: theme.primary, backgroundColor: theme.primary + '18' },
+                  ]}
                   onPress={() => setSelectedType(opt.key)}
                 >
-                  <Text style={[styles.typeBtnText, selectedType === opt.key && styles.typeBtnTextSelected]}>{opt.label}</Text>
+                  <Text style={[
+                    styles.typeBtnText,
+                    { color: theme.textSecondary },
+                    selectedType === opt.key && { color: theme.primary },
+                  ]}>{opt.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -159,8 +169,20 @@ export default function TrackersScreen() {
                 <Text style={styles.fieldLabel}>Frequency</Text>
                 <View style={styles.typeRow}>
                   {(['monthly', 'one_off'] as const).map((f) => (
-                    <TouchableOpacity key={f} style={[styles.typeBtn, fExpFreq === f && styles.typeBtnSelected]} onPress={() => setFExpFreq(f)}>
-                      <Text style={[styles.typeBtnText, fExpFreq === f && styles.typeBtnTextSelected]}>{f === 'monthly' ? 'Monthly' : 'One-off'}</Text>
+                    <TouchableOpacity
+                      key={f}
+                      style={[
+                        styles.typeBtn,
+                        { borderColor: theme.border, backgroundColor: theme.inputBg },
+                        fExpFreq === f && { borderColor: theme.primary, backgroundColor: theme.primary + '18' },
+                      ]}
+                      onPress={() => setFExpFreq(f)}
+                    >
+                      <Text style={[
+                        styles.typeBtnText,
+                        { color: theme.textSecondary },
+                        fExpFreq === f && { color: theme.primary },
+                      ]}>{f === 'monthly' ? 'Monthly' : 'One-off'}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -169,8 +191,20 @@ export default function TrackersScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
                   <View style={{ flexDirection: 'row', gap: 6 }}>
                     {categories.map((cat) => (
-                      <TouchableOpacity key={cat.id} style={[styles.typeBtn, fExpCat === cat.id && styles.typeBtnSelected]} onPress={() => setFExpCat(cat.id)}>
-                        <Text style={[styles.typeBtnText, fExpCat === cat.id && styles.typeBtnTextSelected]}>{cat.name}</Text>
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[
+                          styles.typeBtn,
+                          { borderColor: theme.border, backgroundColor: theme.inputBg },
+                          fExpCat === cat.id && { borderColor: theme.primary, backgroundColor: theme.primary + '18' },
+                        ]}
+                        onPress={() => setFExpCat(cat.id)}
+                      >
+                        <Text style={[
+                          styles.typeBtnText,
+                          { color: theme.textSecondary },
+                          fExpCat === cat.id && { color: theme.primary },
+                        ]}>{cat.name}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -204,20 +238,20 @@ export default function TrackersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
+  container: { flex: 1 },
   list: { padding: 16, paddingBottom: 100 },
-  empty: { textAlign: 'center', color: '#999', fontSize: 15, marginTop: 40 },
-  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#4A90D9', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 6 },
+  empty: { textAlign: 'center', fontSize: 15, marginTop: 40 },
+  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 6 },
   fabText: { color: '#fff', fontSize: 28, lineHeight: 30, fontWeight: '300' },
-  modalContainer: { flex: 1, backgroundColor: '#f8f9fa' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee', backgroundColor: '#fff' },
+  modalContainer: { flex: 1 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
   modalTitle: { fontSize: 17, fontWeight: '700' },
-  cancelText: { color: '#4A90D9', fontSize: 16 },
+  cancelText: { fontSize: 16 },
   modalBody: { flex: 1, padding: 16 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 6, marginTop: 4 },
+  fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6, marginTop: 4 },
   typeRow: { flexDirection: 'row', gap: 6, marginBottom: 16, flexWrap: 'wrap' },
-  typeBtn: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingVertical: 7, paddingHorizontal: 14, backgroundColor: '#fff' },
-  typeBtnSelected: { borderColor: '#4A90D9', backgroundColor: '#4A90D9' + '18' },
-  typeBtnText: { fontSize: 13, color: '#666', fontWeight: '500' },
-  typeBtnTextSelected: { color: '#4A90D9' },
+  typeBtn: { borderWidth: 1, borderRadius: 8, paddingVertical: 7, paddingHorizontal: 14 },
+  typeBtnSelected: {},
+  typeBtnText: { fontSize: 13, fontWeight: '500' },
+  typeBtnTextSelected: {},
 });

@@ -3,8 +3,10 @@ import { useDashboardData } from '../../src/hooks/useDashboardData';
 import { usePriceRefresh } from '../../src/hooks/usePriceRefresh';
 import { SummaryCards, AllocationPie, IncomeExpenseBar } from '../../src/components/charts/DashboardCharts';
 import { Button } from '../../src/components/ui/Button';
+import { useTheme } from '../../src/stores/useUiStore';
 
 export default function HomeScreen() {
+  const theme = useTheme();
   const { summary, loading, refresh } = useDashboardData();
   const { refreshing: priceRefreshing, refreshAll } = usePriceRefresh();
 
@@ -14,8 +16,8 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.greeting}>Finance Tracker</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
+      <Text style={[styles.greeting, { color: theme.text }]}>Finance Tracker</Text>
 
       <View style={styles.row}>
         <Button
@@ -27,7 +29,7 @@ export default function HomeScreen() {
       </View>
 
       {loading ? (
-        <Text style={styles.loading}>Loading…</Text>
+        <Text style={[styles.loading, { color: theme.textTertiary }]}>Loading…</Text>
       ) : (
         <>
           <SummaryCards summary={summary} />
@@ -40,9 +42,9 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
+  container: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
-  greeting: { fontSize: 28, fontWeight: '700', color: '#222', marginBottom: 4 },
+  greeting: { fontSize: 28, fontWeight: '700', marginBottom: 4 },
   row: { flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 16 },
-  loading: { textAlign: 'center', color: '#999', marginTop: 30, fontSize: 15 },
+  loading: { textAlign: 'center', marginTop: 30, fontSize: 15 },
 });

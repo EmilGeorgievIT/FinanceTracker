@@ -10,9 +10,19 @@ import { useCategories, useCategoryActions } from '../../../src/hooks/useCategor
 import { exportAllData } from '../../../src/services/exportService';
 import { validateImportData, importAllData } from '../../../src/services/importService';
 import { Button } from '../../../src/components/ui/Button';
+import { useTheme, useUiStore, type ColorSchemeSetting } from '../../../src/stores/useUiStore';
 import type { CategoryRow } from '../../../src/repositories/categoryRepository';
 
+const THEME_OPTIONS: { key: ColorSchemeSetting; label: string }[] = [
+  { key: 'system', label: 'System' },
+  { key: 'light', label: 'Light' },
+  { key: 'dark', label: 'Dark' },
+];
+
 export default function SettingsScreen() {
+  const theme = useTheme();
+  const colorSchemeSetting = useUiStore((s) => s.colorSchemeSetting);
+  const setColorSchemeSetting = useUiStore((s) => s.setColorSchemeSetting);
   const { categories, loading, refresh } = useCategories();
   const { add, rename, remove } = useCategoryActions();
   const [newName, setNewName] = useState('');
@@ -86,10 +96,10 @@ export default function SettingsScreen() {
   };
 
   const renderItem = ({ item }: { item: CategoryRow }) => (
-    <View style={styles.row}>
+    <View style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       {editingId === item.id ? (
         <TextInput
-          style={styles.editInput}
+          style={[styles.editInput, { borderColor: theme.primary, color: theme.inputText }]}
           value={editName}
           onChangeText={setEditName}
           autoFocus
@@ -97,33 +107,53 @@ export default function SettingsScreen() {
           onBlur={() => { setEditingId(null); setEditName(''); }}
         />
       ) : (
-        <Text style={styles.name}>{item.name}</Text>
+        <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
       )}
       <View style={styles.actions}>
         <TouchableOpacity onPress={() => { setEditingId(item.id); setEditName(item.name); }}>
-          <Text style={styles.editText}>Edit</Text>
+          <Text style={[styles.editText, { color: theme.primary }]}>Edit</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => handleDelete(item.id, item.name)}>
-          <Text style={styles.deleteText}>Del</Text>
+          <Text style={[styles.deleteText, { color: theme.danger }]}>Del</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* Appearance */}
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>Appearance</Text>
+      <View style={[styles.themeRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        {THEME_OPTIONS.map((opt) => (
+          <TouchableOpacity
+            key={opt.key}
+            style={[
+              styles.themeBtn,
+              colorSchemeSetting === opt.key && { backgroundColor: theme.primary },
+            ]}
+            onPress={() => setColorSchemeSetting(opt.key)}
+          >
+            <Text style={[styles.themeBtnText, { color: colorSchemeSetting === opt.key ? '#fff' : theme.textSecondary }]}>
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {/* Data section */}
-      <Text style={styles.sectionTitle}>Data</Text>
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>Data</Text>
       <View style={{ gap: 10, marginBottom: 24 }}>
         <Button title="Export Data (JSON)" onPress={handleExport} />
         <Button title={importing ? 'Importing…' : 'Import Data (JSON)'} variant="secondary" onPress={handleImport} />
       </View>
 
       {/* Categories */}
-      <Text style={styles.sectionTitle}>Categories</Text>
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>Categories</Text>
       <View style={styles.addRow}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.border, color: theme.inputText }]}
+          placeholderTextColor={theme.inputPlaceholder}
           value={newName}
           onChangeText={setNewName}
           placeholder="New category"
@@ -135,7 +165,7 @@ export default function SettingsScreen() {
       </View>
 
       {loading ? (
-        <Text style={styles.loading}>Loading…</Text>
+        <Text style={[styles.loading, { color: theme.textTertiary }]}>Loading…</Text>
       ) : (
         categories.map((cat) => <View key={cat.id}>{renderItem({ item: cat })}</View>)
       )}
@@ -144,17 +174,20 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa', padding: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#222', marginBottom: 12, marginTop: 8 },
+  container: { flex: 1, padding: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, marginTop: 8 },
+  themeRow: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, overflow: 'hidden', marginBottom: 24 },
+  themeBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
+  themeBtnText: { fontSize: 14, fontWeight: '600' },
   addRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  input: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, fontSize: 15, backgroundColor: '#fff' },
+  input: { flex: 1, borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 15 },
   addBtn: { backgroundColor: '#4A90D9', borderRadius: 8, paddingHorizontal: 20, justifyContent: 'center' },
   addBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: '#eee' },
-  name: { flex: 1, fontSize: 16, color: '#333' },
+  row: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 8, marginBottom: 8, borderWidth: 1 },
+  name: { flex: 1, fontSize: 16 },
   actions: { flexDirection: 'row', gap: 12 },
-  editText: { color: '#4A90D9', fontWeight: '600' },
-  deleteText: { color: '#e74c3c', fontWeight: '600' },
-  editInput: { flex: 1, borderWidth: 1, borderColor: '#4A90D9', borderRadius: 6, padding: 8, fontSize: 15 },
-  loading: { textAlign: 'center', color: '#999', marginTop: 20 },
+  editText: { fontWeight: '600' },
+  deleteText: { fontWeight: '600' },
+  editInput: { flex: 1, borderWidth: 1, borderRadius: 6, padding: 8, fontSize: 15 },
+  loading: { textAlign: 'center', marginTop: 20 },
 });
