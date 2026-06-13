@@ -35,11 +35,27 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="transactions"
         options={{
-          title: 'Settings',
-          headerTitle: 'Settings',
-          tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" size={size} color={color} />,
+          title: 'Transactions',
+          headerTitle: 'Transactions',
+          tabBarIcon: ({ color, size }) => <Ionicons name="swap-horizontal-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="categories"
+        options={{
+          title: 'Categories',
+          headerTitle: 'Categories',
+          tabBarIcon: ({ color, size }) => <Ionicons name="list-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: 'More',
+          headerTitle: 'More',
+          tabBarIcon: ({ color, size }) => <Ionicons name="ellipsis-horizontal-outline" size={size} color={color} />,
         }}
       />
     </Tabs>

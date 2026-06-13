@@ -11,6 +11,10 @@ export interface DashboardSummary {
   totalMonthlyExpenses: number;
   holdingsValue: number;
   holdingsCost: number;
+  assetTrackerCount: number;
+  debtTrackerCount: number;
+  incomeTrackerCount: number;
+  expenseTrackerCount: number;
 }
 
 export function useDashboardData() {
@@ -34,7 +38,16 @@ export function useDashboardData() {
       totalDebtBalance: 0, totalDebtPrincipal: 0,
       totalMonthlyIncome: 0, totalMonthlyExpenses: 0,
       holdingsValue: 0, holdingsCost: 0,
+      assetTrackerCount: 0, debtTrackerCount: 0,
+      incomeTrackerCount: 0, expenseTrackerCount: 0,
     };
+
+    for (const t of trackers) {
+      if (t.type === 'savings_goal' || t.type === 'variable_holding') s.assetTrackerCount++;
+      else if (t.type === 'mortgage' || t.type === 'loan') s.debtTrackerCount++;
+      else if (t.type === 'income') s.incomeTrackerCount++;
+      else if (t.type === 'expense') s.expenseTrackerCount++;
+    }
 
     for (const t of trackers) {
       if (t.type === 'savings_goal') {

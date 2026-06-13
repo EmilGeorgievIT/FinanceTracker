@@ -1,25 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, FlatList, Modal, Alert,
+  View, Text, SectionList, Modal, Alert,
   StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import {
-  useTrackers,
-  useCreateSavingsGoal,
-  useCreateIncomeTracker,
-  useCreateExpenseTracker,
-  useCreateMortgage,
-  useCreateLoan,
-  useCreateVariableHolding,
+  useCreateSavingsGoal, useCreateIncomeTracker, useCreateExpenseTracker,
+  useCreateMortgage, useCreateLoan, useCreateVariableHolding,
   useDeleteTracker,
 } from '../../../src/hooks/useTrackers';
 import { useCategories } from '../../../src/hooks/useCategories';
-import { TrackerCard } from '../../../src/components/tracker/TrackerCard';
 import { Button } from '../../../src/components/ui/Button';
 import { Input } from '../../../src/components/ui/Input';
+import { Card } from '../../../src/components/ui/Card';
 import { useTheme } from '../../../src/stores/useUiStore';
+import { formatEur } from '../../../src/utils/currency';
+import * as repo from '../../../src/repositories/trackerRepository';
+import type { TrackerRow } from '../../../src/repositories/trackerRepository';
 import type { TrackerType } from '../../../src/types/enums';
+
+type FilterKey = 'all' | 'assets' | 'debts' | 'income' | 'expenses';
+
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'assets', label: 'Assets' },
+  { key: 'debts', label: 'Debts' },
+  { key: 'income', label: 'Income' },
+  { key: 'expenses', label: 'Expenses' },
+];
+
+function trackerGroup(t: TrackerRow): string {
+  if (t.type === 'savings_goal' || t.type === 'variable_holding') return 'Assets';
+  if (t.type === 'mortgage' || t.type === 'loan') return 'Debts';
+  if (t.type === 'income') return 'Income';
+  return 'Expenses';
+}
 
 const TRACKER_TYPE_OPTIONS: { key: TrackerType; label: string }[] = [
   { key: 'savings_goal', label: 'Savings' },
@@ -30,21 +46,52 @@ const TRACKER_TYPE_OPTIONS: { key: TrackerType; label: string }[] = [
   { key: 'expense', label: 'Expense' },
 ];
 
+interface Section {
+  title: string;
+  data: TrackerRow[];
+}
+
 export default function TrackersScreen() {
   const theme = useTheme();
-  const { trackers, loading, refresh } = useTrackers();
+  const [trackers, setTrackers] = useState<TrackerRow[]>([]);
+  const [filter, setFilter] = useState<FilterKey>('all');
+  const [loading, setLoading] = useState(true);
+  const deleteTracker = useDeleteTracker();
   const createSavingsGoal = useCreateSavingsGoal();
   const createIncome = useCreateIncomeTracker();
   const createExpense = useCreateExpenseTracker();
   const createMortgage = useCreateMortgage();
   const createLoan = useCreateLoan();
   const createHolding = useCreateVariableHolding();
-  const deleteTracker = useDeleteTracker();
   const { categories } = useCategories();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState<TrackerType>('savings_goal');
 
-  // Form
+  const doRefresh = useCallback(async () => {
+    const data = await repo.getAllTrackers();
+    setTrackers(data);
+    setLoading(false);
+  }, []);
+
+  useFocusEffect(useCallback(() => { doRefresh(); }, [doRefresh]));
+
+  const getVisible = () => {
+    let items = trackers;
+    if (filter === 'assets') items = items.filter((t) => t.type === 'savings_goal' || t.type === 'variable_holding');
+    else if (filter === 'debts') items = items.filter((t) => t.type === 'mortgage' || t.type === 'loan');
+    else if (filter === 'income') items = items.filter((t) => t.type === 'income');
+    else if (filter === 'expenses') items = items.filter((t) => t.type === 'expense');
+
+    const groups = new Map<string, TrackerRow[]>();
+    for (const t of items) {
+      const g = trackerGroup(t);
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g)!.push(t);
+    }
+    return Array.from(groups.entries()).map(([title, data]) => ({ title, data }));
+  };
+
+  // Form state
   const [fName, setFName] = useState('');
   const [fTarget, setFTarget] = useState('');
   const [fMonthly, setFMonthly] = useState('');
@@ -76,7 +123,6 @@ export default function TrackersScreen() {
   const handleAdd = async () => {
     const name = fName.trim();
     if (!name) return;
-
     if (selectedType === 'savings_goal') {
       if (!fTarget.trim()) return;
       await createSavingsGoal({ name, targetAmount: p(fTarget), monthlyContribution: p(fMonthly), priority: parseInt(fPriority, 10) || 0 });
@@ -93,31 +139,54 @@ export default function TrackersScreen() {
     }
     resetForm();
     setModalVisible(false);
-    refresh();
+    doRefresh();
   };
+
+  const renderTracker = ({ item }: { item: TrackerRow }) => (
+    <TrackerListItem
+      tracker={item}
+      onPress={() => router.push(`/trackers/${item.id}`)}
+      onDelete={async () => { await deleteTracker(item.id); doRefresh(); }}
+    />
+  );
+
+  const renderSection = ({ section }: { section: Section }) => (
+    <Text style={[styles.sectionTitle, { color: theme.textSecondary, marginTop: 16, marginBottom: 8 }]}>
+      {section.title.toUpperCase()}
+    </Text>
+  );
+
+  const sections = getVisible();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <FlatList
-        data={trackers}
+      {/* Filter chips */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+        {FILTERS.map((f) => (
+          <TouchableOpacity
+            key={f.key}
+            style={[styles.chip, { backgroundColor: filter === f.key ? theme.primary : theme.surface, borderColor: filter === f.key ? theme.primary : theme.border }]}
+            onPress={() => setFilter(f.key)}
+          >
+            <Text style={[styles.chipText, { color: filter === f.key ? '#fff' : theme.textSecondary }]}>{f.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => (
-          <TrackerCard
-            tracker={item}
-            onPress={() => router.push(`/trackers/${item.id}`)}
-            onDelete={async () => {
-              await deleteTracker(item.id);
-              refresh();
-            }}
-          />
-        )}
-        contentContainerStyle={styles.list}
+        renderItem={renderTracker}
+        renderSectionHeader={renderSection}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         ListEmptyComponent={!loading ? <Text style={[styles.empty, { color: theme.textTertiary }]}>No trackers yet. Tap + to add one.</Text> : null}
       />
+
       <TouchableOpacity style={[styles.fab, { backgroundColor: theme.fab }]} onPress={() => setModalVisible(true)} activeOpacity={0.8}>
-        <Text style={styles.fabText}>+</Text>
+        <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
 
+      {/* Create Modal — same as before but keeping it compact */}
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
         <KeyboardAvoidingView style={[styles.modalContainer, { backgroundColor: theme.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
@@ -133,102 +202,57 @@ export default function TrackersScreen() {
               {TRACKER_TYPE_OPTIONS.map((opt) => (
                 <TouchableOpacity
                   key={opt.key}
-                  style={[
-                    styles.typeBtn,
-                    { borderColor: theme.border, backgroundColor: theme.inputBg },
-                    selectedType === opt.key && { borderColor: theme.primary, backgroundColor: theme.primary + '18' },
-                  ]}
+                  style={[styles.typeBtn, { borderColor: theme.border, backgroundColor: theme.inputBg }, selectedType === opt.key && { borderColor: theme.primary, backgroundColor: theme.primary + '18' }]}
                   onPress={() => setSelectedType(opt.key)}
                 >
-                  <Text style={[
-                    styles.typeBtnText,
-                    { color: theme.textSecondary },
-                    selectedType === opt.key && { color: theme.primary },
-                  ]}>{opt.label}</Text>
+                  <Text style={[styles.typeBtnText, { color: theme.textSecondary }, selectedType === opt.key && { color: theme.primary }]}>{opt.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
             <Input label="Name" placeholder="Tracker name" value={fName} onChangeText={setFName} />
-
-            {selectedType === 'savings_goal' && (
-              <>
-                <Input label="Target Amount (EUR)" keyboardType="decimal-pad" value={fTarget} onChangeText={setFTarget} />
-                <Input label="Monthly Contribution (EUR)" keyboardType="decimal-pad" value={fMonthly} onChangeText={setFMonthly} />
-                <Input label="Priority (0 = highest)" keyboardType="number-pad" value={fPriority} onChangeText={setFPriority} />
-              </>
-            )}
-            {selectedType === 'income' && (
-              <>
-                <Input label="Net Monthly Amount (EUR)" keyboardType="decimal-pad" value={fIncomeAmt} onChangeText={setFIncomeAmt} />
-                <Input label="Payment Day (1-31)" keyboardType="number-pad" value={fPayDay} onChangeText={setFPayDay} />
-              </>
-            )}
-            {selectedType === 'expense' && (
-              <>
-                <Input label="Amount (EUR)" keyboardType="decimal-pad" value={fExpAmt} onChangeText={setFExpAmt} />
-                <Text style={styles.fieldLabel}>Frequency</Text>
-                <View style={styles.typeRow}>
-                  {(['monthly', 'one_off'] as const).map((f) => (
-                    <TouchableOpacity
-                      key={f}
-                      style={[
-                        styles.typeBtn,
-                        { borderColor: theme.border, backgroundColor: theme.inputBg },
-                        fExpFreq === f && { borderColor: theme.primary, backgroundColor: theme.primary + '18' },
-                      ]}
-                      onPress={() => setFExpFreq(f)}
-                    >
-                      <Text style={[
-                        styles.typeBtnText,
-                        { color: theme.textSecondary },
-                        fExpFreq === f && { color: theme.primary },
-                      ]}>{f === 'monthly' ? 'Monthly' : 'One-off'}</Text>
+            {selectedType === 'savings_goal' && (<>
+              <Input label="Target Amount (EUR)" keyboardType="decimal-pad" value={fTarget} onChangeText={setFTarget} />
+              <Input label="Monthly Contribution (EUR)" keyboardType="decimal-pad" value={fMonthly} onChangeText={setFMonthly} />
+              <Input label="Priority (0 = highest)" keyboardType="number-pad" value={fPriority} onChangeText={setFPriority} />
+            </>)}
+            {selectedType === 'income' && (<>
+              <Input label="Net Monthly Amount (EUR)" keyboardType="decimal-pad" value={fIncomeAmt} onChangeText={setFIncomeAmt} />
+              <Input label="Payment Day (1-31)" keyboardType="number-pad" value={fPayDay} onChangeText={setFPayDay} />
+            </>)}
+            {selectedType === 'expense' && (<>
+              <Input label="Amount (EUR)" keyboardType="decimal-pad" value={fExpAmt} onChangeText={setFExpAmt} />
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Frequency</Text>
+              <View style={styles.typeRow}>
+                {(['monthly', 'one_off'] as const).map((f) => (
+                  <TouchableOpacity key={f} style={[styles.typeBtn, { borderColor: theme.border, backgroundColor: theme.inputBg }, fExpFreq === f && { borderColor: theme.primary, backgroundColor: theme.primary + '18' }]} onPress={() => setFExpFreq(f)}>
+                    <Text style={[styles.typeBtnText, { color: theme.textSecondary }, fExpFreq === f && { color: theme.primary }]}>{f === 'monthly' ? 'Monthly' : 'One-off'}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Input label={fExpFreq === 'monthly' ? 'Day of Month' : 'Date'} keyboardType="number-pad" value={fExpDay} onChangeText={setFExpDay} />
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  {categories.map((cat) => (
+                    <TouchableOpacity key={cat.id} style={[styles.typeBtn, { borderColor: theme.border, backgroundColor: theme.inputBg }, fExpCat === cat.id && { borderColor: theme.primary, backgroundColor: theme.primary + '18' }]} onPress={() => setFExpCat(cat.id)}>
+                      <Text style={[styles.typeBtnText, { color: theme.textSecondary }, fExpCat === cat.id && { color: theme.primary }]}>{cat.name}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
-                <Input label={fExpFreq === 'monthly' ? 'Day of Month' : 'Date'} keyboardType="number-pad" value={fExpDay} onChangeText={setFExpDay} />
-                <Text style={styles.fieldLabel}>Category</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    {categories.map((cat) => (
-                      <TouchableOpacity
-                        key={cat.id}
-                        style={[
-                          styles.typeBtn,
-                          { borderColor: theme.border, backgroundColor: theme.inputBg },
-                          fExpCat === cat.id && { borderColor: theme.primary, backgroundColor: theme.primary + '18' },
-                        ]}
-                        onPress={() => setFExpCat(cat.id)}
-                      >
-                        <Text style={[
-                          styles.typeBtnText,
-                          { color: theme.textSecondary },
-                          fExpCat === cat.id && { color: theme.primary },
-                        ]}>{cat.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
-              </>
-            )}
-            {(selectedType === 'mortgage' || selectedType === 'loan') && (
-              <>
-                <Input label="Original Principal (EUR)" keyboardType="decimal-pad" value={fPrincipal} onChangeText={setFPrincipal} />
-                <Input label="Current Balance (EUR)" keyboardType="decimal-pad" value={fBalance} onChangeText={setFBalance} />
-                <Input label="Annual Interest Rate (%)" keyboardType="decimal-pad" value={fRate} onChangeText={setFRate} />
-                <Input label="Monthly Payment (EUR)" keyboardType="decimal-pad" value={fPayment} onChangeText={setFPayment} />
-                {selectedType === 'mortgage' && (
-                  <Input label="Property Value (EUR)" keyboardType="decimal-pad" value={fPropValue} onChangeText={setFPropValue} />
-                )}
-              </>
-            )}
-            {selectedType === 'variable_holding' && (
-              <>
-                <Input label="Ticker Symbol" placeholder="e.g. BTC-USD, AAPL" value={fTicker} onChangeText={setFTicker} autoCapitalize="characters" />
-                <Input label="Units Held" keyboardType="decimal-pad" value={fUnits} onChangeText={setFUnits} />
-                <Input label="Avg Purchase Price (EUR)" keyboardType="decimal-pad" value={fAvgPrice} onChangeText={setFAvgPrice} />
-              </>
-            )}
+              </ScrollView>
+            </>)}
+            {(selectedType === 'mortgage' || selectedType === 'loan') && (<>
+              <Input label="Original Principal (EUR)" keyboardType="decimal-pad" value={fPrincipal} onChangeText={setFPrincipal} />
+              <Input label="Current Balance (EUR)" keyboardType="decimal-pad" value={fBalance} onChangeText={setFBalance} />
+              <Input label="Annual Interest Rate (%)" keyboardType="decimal-pad" value={fRate} onChangeText={setFRate} />
+              <Input label="Monthly Payment (EUR)" keyboardType="decimal-pad" value={fPayment} onChangeText={setFPayment} />
+              {selectedType === 'mortgage' && <Input label="Property Value (EUR)" keyboardType="decimal-pad" value={fPropValue} onChangeText={setFPropValue} />}
+            </>)}
+            {selectedType === 'variable_holding' && (<>
+              <Input label="Ticker Symbol" placeholder="e.g. BTC-USD, AAPL" value={fTicker} onChangeText={setFTicker} autoCapitalize="characters" />
+              <Input label="Units Held" keyboardType="decimal-pad" value={fUnits} onChangeText={setFUnits} />
+              <Input label="Avg Purchase Price (EUR)" keyboardType="decimal-pad" value={fAvgPrice} onChangeText={setFAvgPrice} />
+            </>)}
             <Button title={`Create ${TRACKER_TYPE_OPTIONS.find((t) => t.key === selectedType)?.label ?? ''}`} onPress={handleAdd} style={{ marginTop: 12 }} />
           </ScrollView>
         </KeyboardAvoidingView>
@@ -237,12 +261,85 @@ export default function TrackersScreen() {
   );
 }
 
+// Inline tracker list item with subtitle metrics
+const TYPE_COLORS: Record<string, string> = {
+  savings_goal: '#27ae60', variable_holding: '#8e44ad',
+  mortgage: '#e74c3c', loan: '#e67e22',
+  income: '#2ecc71', expense: '#c0392b',
+};
+const TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  savings_goal: 'flag-outline', variable_holding: 'bar-chart-outline',
+  mortgage: 'home-outline', loan: 'car-outline',
+  income: 'cash-outline', expense: 'card-outline',
+};
+
+function TrackerListItem({ tracker, onPress, onDelete }: { tracker: TrackerRow; onPress: () => void; onDelete: () => void }) {
+  const theme = useTheme();
+  const color = TYPE_COLORS[tracker.type] ?? '#999';
+  const icon = TYPE_ICONS[tracker.type] ?? 'wallet-outline';
+  const [subtitle, setSubtitle] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (tracker.type === 'savings_goal') {
+          const sg = await repo.getSavingsGoalByTrackerId(tracker.id);
+          if (sg) setSubtitle(`${formatEur(sg.currentBalance)} of ${formatEur(sg.targetAmount)} · ${Math.round(sg.currentBalance / sg.targetAmount * 100)}%`);
+        } else if (tracker.type === 'income') {
+          const inc = await repo.getIncomeTrackerByTrackerId(tracker.id);
+          if (inc) setSubtitle(`${formatEur(inc.netMonthlyAmount)}/mo · Day ${inc.paymentDay}`);
+        } else if (tracker.type === 'expense') {
+          const exp = await repo.getExpenseTrackerByTrackerId(tracker.id);
+          if (exp) setSubtitle(`${formatEur(exp.amount)} · ${exp.frequency === 'monthly' ? 'Monthly' : 'One-off'}`);
+        } else if (tracker.type === 'mortgage' || tracker.type === 'loan') {
+          const m = tracker.type === 'mortgage' ? await repo.getMortgageByTrackerId(tracker.id) : await repo.getLoanByTrackerId(tracker.id);
+          if (m) setSubtitle(`${formatEur(m.balance)} remaining · ${m.interestRate}%`);
+        } else if (tracker.type === 'variable_holding') {
+          const vh = await repo.getVariableHoldingByTrackerId(tracker.id);
+          if (vh) {
+            const price = vh.currentPrice ?? vh.avgPurchasePrice;
+            const val = vh.units * price;
+            const pnl = val - vh.units * vh.avgPurchasePrice;
+            setSubtitle(`${vh.units} units · ${formatEur(val)} · ${pnl >= 0 ? '+' : ''}${formatEur(pnl)}`);
+          }
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [tracker]);
+
+  const handleLongPress = () => {
+    Alert.alert('Delete Tracker', `Remove "${tracker.name}" and all its data?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: onDelete },
+    ]);
+  };
+
+  return (
+    <TouchableOpacity onPress={onPress} onLongPress={handleLongPress} activeOpacity={0.7}>
+      <Card style={{ marginBottom: 8, paddingVertical: 14, paddingHorizontal: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={[{ width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: color + '18', marginRight: 12 }]}>
+            <Ionicons name={icon} size={20} color={color} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>{tracker.name}</Text>
+            {subtitle && <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>{subtitle}</Text>}
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
+        </View>
+      </Card>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  list: { padding: 16, paddingBottom: 100 },
+  filterScroll: { marginTop: 8, marginBottom: 4, maxHeight: 44 },
+  chip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1 },
+  chipText: { fontSize: 13, fontWeight: '600' },
+  sectionTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   empty: { textAlign: 'center', fontSize: 15, marginTop: 40 },
   fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 6 },
-  fabText: { color: '#fff', fontSize: 28, lineHeight: 30, fontWeight: '300' },
   modalContainer: { flex: 1 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
   modalTitle: { fontSize: 17, fontWeight: '700' },
@@ -251,7 +348,5 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6, marginTop: 4 },
   typeRow: { flexDirection: 'row', gap: 6, marginBottom: 16, flexWrap: 'wrap' },
   typeBtn: { borderWidth: 1, borderRadius: 8, paddingVertical: 7, paddingHorizontal: 14 },
-  typeBtnSelected: {},
   typeBtnText: { fontSize: 13, fontWeight: '500' },
-  typeBtnTextSelected: {},
 });
