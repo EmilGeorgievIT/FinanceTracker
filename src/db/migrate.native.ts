@@ -1,4 +1,4 @@
-import { openDatabaseSync } from 'expo-sqlite';
+import { rawDb } from './client';
 
 const MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS category (
@@ -92,6 +92,5 @@ CREATE TABLE IF NOT EXISTS transactions (
 `;
 
 export function runMigrations(): void {
-  const db = openDatabaseSync('finance_tracker.db');
-  db.execSync(MIGRATION_SQL);
+  rawDb.execSync(MIGRATION_SQL);
 }
