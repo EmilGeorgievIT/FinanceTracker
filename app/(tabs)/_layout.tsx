@@ -1,9 +1,10 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../src/stores/useUiStore';
+import { useTheme, useT } from '../../src/stores/useUiStore';
 
 export default function TabLayout() {
   const theme = useTheme();
+  const t = useT();
 
   return (
     <Tabs
@@ -21,15 +22,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          headerTitle: 'Finance Tracker',
+          title: t('home'),
+          headerTitle: t('financeTracker'),
           tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="trackers"
         options={{
-          title: 'Trackers',
+          title: t('trackers'),
           headerShown: false,
           tabBarIcon: ({ color, size }) => <Ionicons name="wallet-outline" size={size} color={color} />,
         }}
@@ -37,24 +38,24 @@ export default function TabLayout() {
       <Tabs.Screen
         name="transactions"
         options={{
-          title: 'Transactions',
-          headerTitle: 'Transactions',
+          title: t('transactions'),
+          headerTitle: t('transactions'),
           tabBarIcon: ({ color, size }) => <Ionicons name="swap-horizontal-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="categories"
         options={{
-          title: 'Categories',
-          headerTitle: 'Categories',
+          title: t('categories'),
+          headerTitle: t('categories'),
           tabBarIcon: ({ color, size }) => <Ionicons name="list-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="more"
         options={{
-          title: 'More',
-          headerTitle: 'More',
+          title: t('more'),
+          headerTitle: t('more'),
           tabBarIcon: ({ color, size }) => <Ionicons name="ellipsis-horizontal-outline" size={size} color={color} />,
         }}
       />

@@ -14,7 +14,7 @@ import { useCategories } from '../../../src/hooks/useCategories';
 import { Button } from '../../../src/components/ui/Button';
 import { Input } from '../../../src/components/ui/Input';
 import { Card } from '../../../src/components/ui/Card';
-import { useTheme } from '../../../src/stores/useUiStore';
+import { useTheme, useT } from '../../../src/stores/useUiStore';
 import { formatEur } from '../../../src/utils/currency';
 import * as repo from '../../../src/repositories/trackerRepository';
 import type { TrackerRow } from '../../../src/repositories/trackerRepository';
@@ -22,28 +22,28 @@ import type { TrackerType } from '../../../src/types/enums';
 
 type FilterKey = 'all' | 'assets' | 'debts' | 'income' | 'expenses';
 
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'assets', label: 'Assets' },
-  { key: 'debts', label: 'Debts' },
-  { key: 'income', label: 'Income' },
-  { key: 'expenses', label: 'Expenses' },
+const FILTERS: { key: FilterKey; labelKey: string }[] = [
+  { key: 'all', labelKey: 'all' },
+  { key: 'assets', labelKey: 'assets' },
+  { key: 'debts', labelKey: 'debts' },
+  { key: 'income', labelKey: 'income' },
+  { key: 'expenses', labelKey: 'expenses' },
 ];
 
-function trackerGroup(t: TrackerRow): string {
-  if (t.type === 'savings_goal' || t.type === 'variable_holding') return 'Assets';
-  if (t.type === 'mortgage' || t.type === 'loan') return 'Debts';
-  if (t.type === 'income') return 'Income';
-  return 'Expenses';
+function trackerGroup(tracker: TrackerRow): string {
+  if (tracker.type === 'savings_goal' || tracker.type === 'variable_holding') return 'assets';
+  if (tracker.type === 'mortgage' || tracker.type === 'loan') return 'debts';
+  if (tracker.type === 'income') return 'income';
+  return 'expenses';
 }
 
-const TRACKER_TYPE_OPTIONS: { key: TrackerType; label: string }[] = [
-  { key: 'savings_goal', label: 'Savings' },
-  { key: 'variable_holding', label: 'Holding' },
-  { key: 'mortgage', label: 'Mortgage' },
-  { key: 'loan', label: 'Loan' },
-  { key: 'income', label: 'Income' },
-  { key: 'expense', label: 'Expense' },
+const TRACKER_TYPE_OPTIONS: { key: TrackerType; labelKey: string }[] = [
+  { key: 'savings_goal', labelKey: 'savingsGoal' },
+  { key: 'variable_holding', labelKey: 'variableHolding' },
+  { key: 'mortgage', labelKey: 'mortgage' },
+  { key: 'loan', labelKey: 'loan' },
+  { key: 'income', labelKey: 'income' },
+  { key: 'expense', labelKey: 'expenses' },
 ];
 
 interface Section {
@@ -53,6 +53,7 @@ interface Section {
 
 export default function TrackersScreen() {
   const theme = useTheme();
+  const t = useT();
   const [trackers, setTrackers] = useState<TrackerRow[]>([]);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [loading, setLoading] = useState(true);
@@ -152,7 +153,7 @@ export default function TrackersScreen() {
 
   const renderSection = ({ section }: { section: Section }) => (
     <Text style={[styles.sectionTitle, { color: theme.textSecondary, marginTop: 16, marginBottom: 8 }]}>
-      {section.title.toUpperCase()}
+      {t(section.title as any).toUpperCase()}
     </Text>
   );
 
@@ -168,7 +169,7 @@ export default function TrackersScreen() {
             style={[styles.chip, { backgroundColor: filter === f.key ? theme.primary : theme.surface, borderColor: filter === f.key ? theme.primary : theme.border }]}
             onPress={() => setFilter(f.key)}
           >
-            <Text style={[styles.chipText, { color: filter === f.key ? '#fff' : theme.textSecondary }]}>{f.label}</Text>
+            <Text style={[styles.chipText, { color: filter === f.key ? '#fff' : theme.textSecondary }]}>{t(f.labelKey as any)}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -179,7 +180,7 @@ export default function TrackersScreen() {
         renderItem={renderTracker}
         renderSectionHeader={renderSection}
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-        ListEmptyComponent={!loading ? <Text style={[styles.empty, { color: theme.textTertiary }]}>No trackers yet. Tap + to add one.</Text> : null}
+        ListEmptyComponent={!loading ? <Text style={[styles.empty, { color: theme.textTertiary }]}>{t('noTrackers')}</Text> : null}
       />
 
       <TouchableOpacity style={[styles.fab, { backgroundColor: theme.fab }]} onPress={() => setModalVisible(true)} activeOpacity={0.8}>
@@ -191,13 +192,13 @@ export default function TrackersScreen() {
         <KeyboardAvoidingView style={[styles.modalContainer, { backgroundColor: theme.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
             <TouchableOpacity onPress={() => { setModalVisible(false); resetForm(); }}>
-              <Text style={[styles.cancelText, { color: theme.primary }]}>Cancel</Text>
+              <Text style={[styles.cancelText, { color: theme.primary }]}>{t('cancel')}</Text>
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>New Tracker</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t('newTracker')}</Text>
             <View style={{ width: 60 }} />
           </View>
           <ScrollView style={styles.modalBody} contentContainerStyle={{ paddingBottom: 40 }}>
-            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Type</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t('type')}</Text>
             <View style={styles.typeRow}>
               {TRACKER_TYPE_OPTIONS.map((opt) => (
                 <TouchableOpacity
@@ -205,11 +206,11 @@ export default function TrackersScreen() {
                   style={[styles.typeBtn, { borderColor: theme.border, backgroundColor: theme.inputBg }, selectedType === opt.key && { borderColor: theme.primary, backgroundColor: theme.primary + '18' }]}
                   onPress={() => setSelectedType(opt.key)}
                 >
-                  <Text style={[styles.typeBtnText, { color: theme.textSecondary }, selectedType === opt.key && { color: theme.primary }]}>{opt.label}</Text>
+                  <Text style={[styles.typeBtnText, { color: theme.textSecondary }, selectedType === opt.key && { color: theme.primary }]}>{t(opt.labelKey as any)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <Input label="Name" placeholder="Tracker name" value={fName} onChangeText={setFName} />
+            <Input label={t('name')} placeholder={t('trackerName')} value={fName} onChangeText={setFName} />
             {selectedType === 'savings_goal' && (<>
               <Input label="Target Amount (EUR)" keyboardType="decimal-pad" value={fTarget} onChangeText={setFTarget} />
               <Input label="Monthly Contribution (EUR)" keyboardType="decimal-pad" value={fMonthly} onChangeText={setFMonthly} />
@@ -221,7 +222,7 @@ export default function TrackersScreen() {
             </>)}
             {selectedType === 'expense' && (<>
               <Input label="Amount (EUR)" keyboardType="decimal-pad" value={fExpAmt} onChangeText={setFExpAmt} />
-              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Frequency</Text>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t('frequency')}</Text>
               <View style={styles.typeRow}>
                 {(['monthly', 'one_off'] as const).map((f) => (
                   <TouchableOpacity key={f} style={[styles.typeBtn, { borderColor: theme.border, backgroundColor: theme.inputBg }, fExpFreq === f && { borderColor: theme.primary, backgroundColor: theme.primary + '18' }]} onPress={() => setFExpFreq(f)}>
@@ -230,7 +231,7 @@ export default function TrackersScreen() {
                 ))}
               </View>
               <Input label={fExpFreq === 'monthly' ? 'Day of Month' : 'Date'} keyboardType="number-pad" value={fExpDay} onChangeText={setFExpDay} />
-              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Category</Text>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t('categories')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
                 <View style={{ flexDirection: 'row', gap: 6 }}>
                   {categories.map((cat) => (
@@ -275,6 +276,7 @@ const TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 function TrackerListItem({ tracker, onPress, onDelete }: { tracker: TrackerRow; onPress: () => void; onDelete: () => void }) {
   const theme = useTheme();
+  const t = useT();
   const color = TYPE_COLORS[tracker.type] ?? '#999';
   const icon = TYPE_ICONS[tracker.type] ?? 'wallet-outline';
   const [subtitle, setSubtitle] = useState<string | null>(null);
@@ -308,9 +310,9 @@ function TrackerListItem({ tracker, onPress, onDelete }: { tracker: TrackerRow; 
   }, [tracker]);
 
   const handleLongPress = () => {
-    Alert.alert('Delete Tracker', `Remove "${tracker.name}" and all its data?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: onDelete },
+    Alert.alert(t('deleteTracker'), t('deleteConfirm', { name: tracker.name }), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('delete'), style: 'destructive', onPress: onDelete },
     ]);
   };
 

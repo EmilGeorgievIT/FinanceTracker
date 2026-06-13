@@ -6,21 +6,22 @@ import { usePriceRefresh } from '../../src/hooks/usePriceRefresh';
 import { SummaryCards, IncomeExpenseBar } from '../../src/components/charts/DashboardCharts';
 import { Card } from '../../src/components/ui/Card';
 import { Button } from '../../src/components/ui/Button';
-import { useTheme } from '../../src/stores/useUiStore';
+import { useTheme, useT } from '../../src/stores/useUiStore';
 import { formatEur } from '../../src/utils/currency';
 
 type FilterKey = 'overview' | 'assets' | 'debts' | 'income' | 'expenses';
 
-const FILTERS: { key: FilterKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'overview', label: 'Overview', icon: 'apps-outline' },
-  { key: 'assets', label: 'Assets', icon: 'trending-up-outline' },
-  { key: 'debts', label: 'Debts', icon: 'trending-down-outline' },
-  { key: 'income', label: 'Income', icon: 'cash-outline' },
-  { key: 'expenses', label: 'Expenses', icon: 'card-outline' },
+const FILTERS: { key: FilterKey; labelKey: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'overview', labelKey: 'overview', icon: 'apps-outline' },
+  { key: 'assets', labelKey: 'assets', icon: 'trending-up-outline' },
+  { key: 'debts', labelKey: 'debts', icon: 'trending-down-outline' },
+  { key: 'income', labelKey: 'income', icon: 'cash-outline' },
+  { key: 'expenses', labelKey: 'expenses', icon: 'card-outline' },
 ];
 
 export default function HomeScreen() {
   const theme = useTheme();
+  const t = useT();
   const { summary, loading, refresh } = useDashboardData();
   const { refreshing: priceRefreshing, refreshAll } = usePriceRefresh();
   const [filter, setFilter] = useState<FilterKey>('overview');
@@ -39,7 +40,7 @@ export default function HomeScreen() {
       {/* Refresh button */}
       <View style={styles.row}>
         <Button
-          title={priceRefreshing ? 'Refreshing prices…' : 'Refresh Prices'}
+          title={priceRefreshing ? `${t('refreshing')}` : t('refreshPrices')}
           variant="secondary"
           onPress={handleRefreshPrices}
           style={{ flex: 1, paddingVertical: 10 }}
@@ -61,22 +62,22 @@ export default function HomeScreen() {
             onPress={() => setFilter(f.key)}
           >
             <Ionicons name={f.icon} size={16} color={filter === f.key ? '#fff' : theme.textSecondary} />
-            <Text style={[styles.chipText, { color: filter === f.key ? '#fff' : theme.textSecondary }]}>{f.label}</Text>
+            <Text style={[styles.chipText, { color: filter === f.key ? '#fff' : theme.textSecondary }]}>{t(f.labelKey as any)}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
       {loading ? (
-        <Text style={[styles.loading, { color: theme.textTertiary }]}>Loading…</Text>
+        <Text style={[styles.loading, { color: theme.textTertiary }]}>{t('loading')}</Text>
       ) : (
         <>
           {/* Monthly Summary Card */}
           <Card style={styles.summaryCard}>
-            <Text style={[styles.monthLabel, { color: theme.textSecondary }]}>Monthly Net</Text>
+            <Text style={[styles.monthLabel, { color: theme.textSecondary }]}>{t('monthlyNet')}</Text>
             <Text style={[styles.netValue, { color: monthlyNet >= 0 ? theme.success : theme.danger }]}>
               {monthlyNet >= 0 ? '+' : ''}{formatEur(monthlyNet)}
             </Text>
-            <Text style={[styles.netSubtitle, { color: theme.textTertiary }]}>Income - Expenses</Text>
+            <Text style={[styles.netSubtitle, { color: theme.textTertiary }]}>{t('incomeMinusExpenses')}</Text>
           </Card>
 
           {/* Bar chart */}
@@ -87,12 +88,12 @@ export default function HomeScreen() {
           {/* Summary cards */}
           {(filter === 'overview' || filter === 'assets') && (
             <View style={styles.quickSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Assets</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('assets')}</Text>
               <Card style={styles.statsCard}>
                 <View style={styles.statRow}>
                   <View>
                     <Text style={[styles.statValue, { color: theme.success }]}>{formatEur(summary.totalSavingsBalance + summary.holdingsValue)}</Text>
-                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{summary.assetTrackerCount} trackers</Text>
+                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('trackersCount', { count: summary.assetTrackerCount })}</Text>
                   </View>
                   <Ionicons name="trending-up-outline" size={28} color={theme.success} />
                 </View>
@@ -102,12 +103,12 @@ export default function HomeScreen() {
 
           {(filter === 'overview' || filter === 'debts') && (
             <View style={styles.quickSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Debts</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('debts')}</Text>
               <Card style={styles.statsCard}>
                 <View style={styles.statRow}>
                   <View>
                     <Text style={[styles.statValue, { color: theme.danger }]}>{formatEur(summary.totalDebtBalance)}</Text>
-                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{summary.debtTrackerCount} trackers</Text>
+                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('trackersCount', { count: summary.debtTrackerCount })}</Text>
                   </View>
                   <Ionicons name="trending-down-outline" size={28} color={theme.danger} />
                 </View>
@@ -117,12 +118,12 @@ export default function HomeScreen() {
 
           {(filter === 'overview' || filter === 'income') && (
             <View style={styles.quickSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Income (monthly)</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('incomeMonthly')}</Text>
               <Card style={styles.statsCard}>
                 <View style={styles.statRow}>
                   <View>
                     <Text style={[styles.statValue, { color: theme.success }]}>{formatEur(summary.totalMonthlyIncome)}</Text>
-                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{summary.incomeTrackerCount} trackers</Text>
+                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('trackersCount', { count: summary.incomeTrackerCount })}</Text>
                   </View>
                   <Ionicons name="cash-outline" size={28} color={theme.success} />
                 </View>
@@ -132,12 +133,12 @@ export default function HomeScreen() {
 
           {(filter === 'overview' || filter === 'expenses') && (
             <View style={styles.quickSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Expenses (monthly)</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('expensesMonthly')}</Text>
               <Card style={styles.statsCard}>
                 <View style={styles.statRow}>
                   <View>
                     <Text style={[styles.statValue, { color: theme.danger }]}>{formatEur(summary.totalMonthlyExpenses)}</Text>
-                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{summary.expenseTrackerCount} trackers</Text>
+                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('trackersCount', { count: summary.expenseTrackerCount })}</Text>
                   </View>
                   <Ionicons name="card-outline" size={28} color={theme.danger} />
                 </View>
@@ -148,14 +149,14 @@ export default function HomeScreen() {
           {/* Holdings P&L */}
           {(filter === 'overview' || filter === 'assets') && summary.holdingsValue > 0 && (
             <View style={styles.quickSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Holdings P&L</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('holdingsPL')}</Text>
               <Card style={styles.statsCard}>
                 <View style={styles.statRow}>
                   <View>
                     <Text style={[styles.statValue, { color: holdingsPnl >= 0 ? theme.success : theme.danger }]}>
                       {holdingsPnl >= 0 ? '+' : ''}{formatEur(holdingsPnl)}
                     </Text>
-                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Value: {formatEur(summary.holdingsValue)}</Text>
+                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('value')}: {formatEur(summary.holdingsValue)}</Text>
                   </View>
                   <Ionicons name="bar-chart-outline" size={28} color={holdingsPnl >= 0 ? theme.success : theme.danger} />
                 </View>
