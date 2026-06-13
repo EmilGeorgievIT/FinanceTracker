@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import {
-  View, Text, FlatList, Modal, StyleSheet,
+  View, Text, FlatList, Modal, StyleSheet, Alert,
   TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import { useTrackerWithTransactions } from '../../../src/hooks/useTrackers';
+import { useLocalSearchParams, router } from 'expo-router';
+import { useTrackerWithTransactions, useDeleteTracker } from '../../../src/hooks/useTrackers';
 import { useTransactions, useAddTransaction } from '../../../src/hooks/useTransactions';
 import { usePriceRefresh } from '../../../src/hooks/usePriceRefresh';
 import { Button } from '../../../src/components/ui/Button';
@@ -22,6 +22,7 @@ export default function TrackerDetailScreen() {
     useTrackerWithTransactions(trackerId);
   const { transactions, loading: txLoading, refresh: refreshTx } = useTransactions(trackerId);
   const addTransaction = useAddTransaction();
+  const deleteTracker = useDeleteTracker();
   const { refreshing: priceRefreshing, refreshAll: refreshPrices } = usePriceRefresh();
   const [modalVisible, setModalVisible] = useState(false);
   const [txAmount, setTxAmount] = useState('');
@@ -210,6 +211,26 @@ export default function TrackerDetailScreen() {
             </View>
           ))
         )}
+
+        <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
+          <Button
+            title="Delete Tracker"
+            variant="danger"
+            onPress={() => {
+              Alert.alert(
+                'Delete Tracker',
+                `Permanently remove "${tracker.name}" and all its data?`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Delete', style: 'destructive', onPress: async () => {
+                    await deleteTracker(tracker.id);
+                    router.back();
+                  }},
+                ],
+              );
+            }}
+          />
+        </View>
       </ScrollView>
 
       {/* Add Transaction Modal */}

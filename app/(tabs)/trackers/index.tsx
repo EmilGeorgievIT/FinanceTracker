@@ -100,7 +100,14 @@ export default function TrackersScreen() {
         data={trackers}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
-          <TrackerCard tracker={item} onPress={() => router.push(`/trackers/${item.id}`)} />
+          <TrackerCard
+            tracker={item}
+            onPress={() => router.push(`/trackers/${item.id}`)}
+            onDelete={async () => {
+              await deleteTracker(item.id);
+              refresh();
+            }}
+          />
         )}
         contentContainerStyle={styles.list}
         ListEmptyComponent={!loading ? <Text style={styles.empty}>No trackers yet. Tap + to add one.</Text> : null}

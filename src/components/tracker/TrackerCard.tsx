@@ -1,4 +1,4 @@
-import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, View, StyleSheet, Alert } from 'react-native';
 import type { TrackerRow } from '../../repositories/trackerRepository';
 import { Card } from '../ui/Card';
 import { formatEur } from '../../utils/currency';
@@ -7,6 +7,7 @@ interface Props {
   tracker: TrackerRow;
   subtitle?: string;
   onPress: () => void;
+  onDelete?: () => void;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -27,11 +28,23 @@ const TYPE_COLORS: Record<string, string> = {
   expense: '#c0392b',
 };
 
-export function TrackerCard({ tracker, subtitle, onPress }: Props) {
+export function TrackerCard({ tracker, subtitle, onPress, onDelete }: Props) {
   const color = TYPE_COLORS[tracker.type] ?? '#999';
 
+  const handleLongPress = () => {
+    if (!onDelete) return;
+    Alert.alert(
+      'Delete Tracker',
+      `Remove "${tracker.name}" and all its data?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: onDelete },
+      ],
+    );
+  };
+
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity onPress={onPress} onLongPress={handleLongPress} activeOpacity={0.7}>
       <Card style={styles.card}>
         <View style={styles.left}>
           <Text style={styles.name}>{tracker.name}</Text>
